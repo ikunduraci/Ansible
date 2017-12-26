@@ -12,9 +12,9 @@ As a pre-requisite, ensure the ANSIBLE_STDOUT_CALLBACK=debug environment variabl
 3. add `export ANSIBLE_STDOUT_CALLBACK=debug` as a new line
 4. save and exit
 
-You will need to logoff and back on for this to appear; you can check by `printenv | grep ANSIBLE`
+You will need to logoff and back on for this to appear; you can check this has been set correctly by issuing `printenv | grep ANSIBLE` to confirm it has been set.
 
-Example run and output shown below;
+An example run and output shown below;
 
 `ansible-playbook install-updates.yml`
 
