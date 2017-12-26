@@ -1,0 +1,27 @@
+---
+- hosts: all
+  gather_facts: no
+  vars:
+    win_update_categories:
+        - CriticalUpdates
+        - DefinitionUpdates
+        - SecurityUpdates
+        - Updates
+        - UpdateRollups
+
+  tasks:
+  # Check if there are missing Critical and Security Updates
+    - block:
+        - name: Checking for Available Windows Updates
+          win_updates:
+            category_names: "{{ win_update_categories }}"
+            state: searched
+          register: available_updates
+        - debug:
+          # output the format in a pretty manner; requires ANSIBLE_STDOUT_CALLBACK=debug environment variable to be set
+            msg: |
+              {{ inventory_hostname }} has {{ available_updates.found_update_count }} updates available.
+
+              {% for key, value in available_updates.updates.iteritems() %}
+                - {{ value.title }}
+              {% endfor %}
