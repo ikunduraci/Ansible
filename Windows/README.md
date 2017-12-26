@@ -1,6 +1,6 @@
 ---
-title: check-updates.yml
-description: A playbook to check for missing Windows updates
+### Title: check-updates.yml
+#### Description: A playbook to check for missing Windows updates
 ---
 
 For a given list of hosts, the following playbook will check for all available updates. When managing a large fleet of Windows servers, in order to gather a quick landscape of the patch status of machines, the following playbook can be run. The default win_updates module (http://docs.ansible.com/ansible/latest/win_updates_module.html) is limited in it's output, hence why this playbook was created.
@@ -14,6 +14,8 @@ As a pre-requisite, ensure the ANSIBLE_STDOUT_CALLBACK=debug environment variabl
 
 You will need to logoff and back on for this to appear; you can check by `printenv | grep ANSIBLE`
 
-Example output is shown below;
+Example run and output shown below;
+
+`ansible-playbook check-updates.yml`
 
 ![](output.png)
