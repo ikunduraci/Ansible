@@ -1,0 +1,38 @@
+---
+- hosts: all
+  gather_facts: no
+  vars:
+    win_update_categories:
+        - CriticalUpdates
+        - DefinitionUpdates
+        - SecurityUpdates
+        - Updates
+
+  tasks:
+    - block:
+        - name: Checking for Available Windows Updates
+          win_updates:
+            category_names: "{{ win_update_categories }}"
+            state: searched
+          register: available_updates
+          
+    - block:
+        - name: Install Available Updates
+          win_updates:
+            category_names: "{{ win_update_categories }}"
+          register: installed_updates
+        - name: Reboot, only if required.
+          win_reboot:
+          when: installed_updates.reboot_required
+          register: reboot_status
+      when: (available_updates.found_update_count|int >= 1)
+
+    - block:
+        - debug:
+            msg: |
+              Host {{ inventory_hostname }} has been patched and rebooted. {{ installed_updates.installed_update_count }} updates were installed. The updates installed were:
+              
+              {% for key, value in installed_updates.updates.iteritems() %}
+                - {{ value.title }}
+              {% endfor %}  
+              {{ installed_updates.failed_update_count }} updates failed to install. It took {{ reboot_status.elapsed / 60 }} minutes for the machine to reboot back to a steady state"
