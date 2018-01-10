@@ -1,0 +1,110 @@
+---
+- hosts: splunk-uf
+  gather_facts: no
+  become: yes
+  user: root
+  vars:
+    splunk_working_directory: '/tmp/splunk/'
+    splunk_deployment_server: '192.168.1.11'
+    splunk_deployment_server_port: '8089'
+    splunk_user: 'admin'
+    splunk_password: 'changeme'
+    splunk_uf_binary_linux: 'splunkforwarder-7.0.0-c8a78efdd40f-linux-2.6-amd64.deb'
+
+  tasks:
+    - block:
+        - name: Create local admins group
+          group:
+            name: localadmins
+            state: present
+
+        - name: Create splunk user
+          user:
+            name: splunk
+            groups: localadmins
+            append: yes
+
+        - name: Checking if splunk is installed
+          tags: install
+          stat:
+            path: /opt/splunkforwarder
+          register: splunk_path
+
+        - name: Checking if installer already copied over
+          tags: install
+          stat:
+            path: "{{splunk_working_directory}}{{splunk_uf_binary_linux}}"
+          when: splunk_path.stat.exists == false
+          register: splunk_installer
+
+        - name: splunk is installed
+          tags: install
+          debug: msg='splunk is already installed under /opt/splunkforwarder'
+          when: splunk_path.stat.exists == true
+
+        - name: Checking if deployment server set
+          tags: install
+          stat:
+            path: /opt/splunkforwarder/etc/system/local/deploymentclient.conf
+          register: splunkds
+
+        - name: Splunk deployment server set
+          tags: install
+          debug:
+            msg: 'Splunk Deployment Server is already set'
+          when: splunkds.stat.exists == true
+
+        - name: Assures {{splunk_working_directory}} exists
+          tags: install
+          file:
+            path: /tmp/splunk
+            state: directory
+          when: splunk_path.stat.exists == false
+
+        - name: Push package to server
+          tags: install
+          become: yes
+          copy:
+            src: files/{{splunk_uf_binary_linux}}
+            dest: /tmp/splunk/{{splunk_uf_binary_linux}}
+            owner: splunk
+            group: localadmins
+            mode: 0644
+          when: splunk_path.stat.exists == false and splunk_installer.stat.exists == false
+
+        - name: Install Splunk UF
+          tags: install
+          become: yes
+          command: dpkg -i {{splunk_working_directory}}{{splunk_uf_binary_linux}}
+          when: splunk_path.stat.exists == false
+
+        - name: CHOWN Directory
+          tags: install
+          become: yes
+          shell: chown -R splunk:splunk /opt/splunkforwarder
+          when: splunk_path.stat.exists == false
+
+        - name: Start splunk
+          tags: install
+          become_user: splunk
+          shell: /opt/splunkforwarder/bin/splunk start --accept-license
+          when: splunk_path.stat.exists == false
+
+        - name: Enable boot-start
+          tags: install
+          become: yes
+          shell: /opt/splunkforwarder/bin/splunk enable boot-start -user splunk
+          when: splunk_path.stat.exists == false
+
+        - name: Splunk set deploy-poll and Restart splunkd
+          tags: install
+          become_user: splunk
+          shell: /opt/splunkforwarder/bin/splunk set deploy-poll {{splunk_deployment_server}}:{{splunk_deployment_server_port}} -auth {{splunk_user}}:{{splunk_password}} & /opt/splunkforwarder/bin/splunk restart
+          when: splunkds.stat.exists == false
+
+        - name: Check if DS App for deploymentclient.conf has been pulled
+          tags: install
+          become_user: splunk
+          stat:
+            path: /opt/splunkforwarder/etc/apps/system/local/deploymentclient.conf
+          register: splunk_ds_settings
