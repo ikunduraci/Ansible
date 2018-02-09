@@ -1,0 +1,49 @@
+---
+- hosts: f5
+  gather_facts: true
+  connection: local
+  vars:
+    f5_user: "admin"
+    f5_password: "admin"
+  vars_files:
+    - bigip_vars.yml
+
+  tasks:
+    - name: Deleting virtual servers..
+      bigip_virtual_server:
+          server: "{{ inventory_hostname }}"
+          user: "{{ f5_user }}"
+          password: "{{ f5_password }}"
+          validate_certs: "no"
+          partition: "Common"
+          state: "absent"
+          name: "{{ item.name }}"
+      delegate_to: localhost
+      with_items: "{{ vip }}"
+      tags: delete_vip
+
+    - name: Deleting the pool..
+      bigip_pool:
+        server: "{{ inventory_hostname }}"
+        user: "{{ f5_user }}"
+        password: "{{ f5_password }}"
+        validate_certs: "no"
+        partition: "Common"
+        state: "absent"
+        name: "{{ item.name }}"
+      delegate_to: localhost
+      with_items: "{{ pool_name }}"
+      tags: delete_pool
+
+    - name: Deleting the nodes..
+      bigip_node:
+        server: "{{ inventory_hostname }}"
+        user: "{{ f5_user }}"
+        password: "{{ f5_password }}"
+        validate_certs: "no"
+        partition: "Common"
+        state: "absent"
+        name: "{{ item.name }}"
+      delegate_to: localhost
+      with_items: "{{ pool_nodes }}"
+      tags: delete_nodes

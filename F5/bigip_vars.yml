@@ -1,0 +1,99 @@
+---
+pool_nodes:
+- host: "172.16.202.20"
+  name: "c1"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app1"
+
+- host: "172.16.202.21"
+  name: "c2"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app1"
+
+- host: "172.16.202.22"
+  name: "c3"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app1"
+
+- host: "172.16.202.23"
+  name: "c4"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app1"
+
+- host: "172.16.205.20"
+  name: "c5"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app2"
+
+- host: "172.16.205.21"
+  name: "c6"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app2"
+
+- host: "172.16.205.22"
+  name: "c7"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app2"
+
+- host: "172.16.205.23"
+  name: "c8"
+  port:
+    - "80"
+    - "443"
+  pool: "docker-web-pool-app2"
+
+pool_name:
+- name: "docker-web-pool-app1"
+  lb_method: "round-robin"
+  monitors:
+    - "http"
+
+- name: "docker-web-pool-app2"
+  lb_method: "round-robin"
+  monitors:
+    - "http"
+
+vip:
+- name: "docker_vip_http_app1"
+  description: "Docker HTTP Virtual Server - Ansible"
+  destination: "172.16.201.31"
+  port: "80"
+  profile: "http"
+  policy: "myHTTPtoHTTPSpolicy"
+  pool: "docker-web-pool-app1"
+
+- name: "docker_vip_https_app1"
+  description: "Docker HTTPS Virtual Server - Ansible"
+  destination: "172.16.201.31"
+  port: "443"
+  profile: "app-ssl"
+  pool: "docker-web-pool-app1"
+
+- name: "docker_vip_http_app2"
+  description: "Docker HTTP Virtual Server - Ansible"
+  destination: "172.16.201.32"
+  port: "80"
+  profile: "http"
+  policy: "myHTTPtoHTTPSpolicy"
+  pool: "docker-web-pool-app2"
+
+- name: "docker_vip_https_app2"
+  description: "Docker HTTPS Virtual Server - Ansible"
+  destination: "172.16.201.32"
+  port: "443"
+  profile: "app-ssl"
+  pool: "docker-web-pool-app2"

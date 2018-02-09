@@ -1,0 +1,84 @@
+---
+- hosts: f5
+  gather_facts: true
+  connection: local
+  vars:
+    f5_user: "admin"
+    f5_password: "admin"
+  vars_files:
+    - bigip_vars.yml
+
+  tasks:
+    - name: Adding nodes..
+      bigip_node:
+        server: "{{ inventory_hostname }}"
+        user: "{{ f5_user }}"
+        password: "{{ f5_password }}"
+        validate_certs: "no"
+        partition: "Common"
+        host: "{{ item.host }}"
+        name: "{{ item.name }}"
+        state: "present"
+        monitors:
+          - /Common/icmp
+      delegate_to: localhost
+      with_items: "{{ pool_nodes }}"
+      tags: add_nodes
+
+
+    - name: Creating new pool..
+      bigip_pool:
+        server: "{{ inventory_hostname }}"
+        user: "{{ f5_user }}"
+        password: "{{ f5_password }}"
+        validate_certs: "no"
+        name: "{{ item.name }}"
+        lb_method: "{{ item.lb_method }}"
+        monitors: "{{ item.monitors }}"
+        monitor_type: and_list
+      delegate_to: localhost
+      with_items: "{{ pool_name }}"
+      tags: create_pool
+
+    - name: Adding node members to the pool..for HTTP only
+      bigip_pool_member:
+        server: "{{ inventory_hostname }}"
+        user: "{{ f5_user }}"
+        password: "{{ f5_password }}"
+        validate_certs: "no"
+        state: "present"
+        partition: "Common"
+        host: "{{ item[0].name }}"
+        port: "{{ item[0].port[0] }}"
+        pool: "{{ item[1].name }}"
+      delegate_to: localhost
+      when: item[0].pool == item[1].name
+      with_nested:
+        - "{{ pool_nodes }}"
+        - "{{ pool_name }}"
+      tags: add_members_to_pool
+
+    - name: Adding new virtual server..
+      bigip_virtual_server:
+          server: "{{ inventory_hostname }}"
+          user: "{{ f5_user }}"
+          password: "{{ f5_password }}"
+          validate_certs: "no"
+          partition: "Common"
+          name: "{{ item[0].name }}"
+          description: "{{ item[0].description }}"
+          destination: "{{ item[0].destination }}"
+          port: "{{ item[0].port }}"
+          pool: "{{ item[1].name }}"
+          all_profiles: "{{ item[0].profile }}"
+          # set this value if it exists; otherwise, leave it null. This module
+          # in particular needs the policy attribute specified in the vars file
+          # however because we don't want to define this for the HTTPS VIP, we
+          # need to substitue with an empty value if not defined
+          all_policies: "{{ item[0].policy | default([])  }}"
+      when: item[0].pool == item[1].name
+      delegate_to: localhost
+      with_nested:
+        - "{{ vip }}"
+        - "{{ pool_name }}"
+      tags: add_vip
